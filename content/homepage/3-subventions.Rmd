@@ -1,0 +1,56 @@
+---
+title: "Subventions"
+weight: 4
+header_menu: true
+---
+
+Plusieurs municipalités au Québec offrent des subventions pour aider les familles pour l'achat de couches lavables. Vous trouverez ici une liste de ces municipalités. Si votre municipalité n'offre pas de subvention, n'hésitez pas à contacter vos élus municipaux afin de faire adopter une politique en la matière. 
+
+---
+
+Trouvez et cliquez sur votre municipalité en explorant la carte ci-dessous afin d'obtenir le lien vers les subventions qui vous sont offertes dans votre région.
+
+```{r, echo = FALSE, warnings = FALSE, messages = FALSE}
+library(leaflet)
+path <- here::here("data","subventions","subventions.geojson")
+shp <- sf::st_read(path, quiet = TRUE) |> sf::st_transform(4326)
+cols <- data.frame(
+  MRC = sort(unique(shp$MRC)), 
+  cols = viridis::viridis(length(unique(shp$MRC)))
+)
+shp <- dplyr::left_join(shp,cols,by="MRC")
+links <- glue::glue('<a href="{shp$Subvention}" target="_blank">{shp$Municipalite}</a>')
+lf <- leaflet(shp) |>
+      addProviderTiles('CartoDB.Positron', group = "Default") |>
+      addPolygons(
+        weight = 1,
+        smoothFactor = 0.2, 
+        fillOpacity = 0.4, 
+        color = shp$cols,
+        popup=links,
+        popupOptions = popupOptions(closeOnClick = TRUE)
+      )
+lf
+```
+
+---
+
+Vous pouvez également consulter la liste entière des municipalités, organisées par MRC, ci-desous.
+
+```{r, echo = FALSE, warnings = FALSE, messages = FALSE}
+library(knitr)
+library(kableExtra)
+# path <- here::here("data","subventions","subventions.geojson")
+# shp <- sf::st_read(path, quiet = TRUE)
+mrc <- table(shp$MRC)
+tab <- sf::st_drop_geometry(shp) |>
+       dplyr::mutate(links = glue::glue("[{Municipalite}]({Subvention})")) |> 
+       dplyr::select(links) |>
+       knitr::kable() |>
+       pack_rows(index = mrc, label_row_css = "background-color: #666; color: #fff;") |>
+       kable_paper("hover", full_width = F) |>
+       kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive")) |>
+       collapse_rows(columns = 1, valign = "top")
+
+tab
+```
